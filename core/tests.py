@@ -1,3 +1,4 @@
+
 from django.test import TestCase
 from django.urls import reverse
 
@@ -8,3 +9,7 @@ class HomePageTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Welcome to SmartStudy AI!")
+        self.assertContains(
+            response,
+            "Your personal AI-powered study assistant."
+        )

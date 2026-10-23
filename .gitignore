@@ -12,3 +12,9 @@ db.sqlite3
 
 # Editor settings
 .vscode/
+
+
+# Uploaded study materials
+media/
+
+.env

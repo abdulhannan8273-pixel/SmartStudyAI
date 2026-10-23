@@ -7,7 +7,6 @@
     <title>SmartStudy AI | Dashboard</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-
 </head>
 <body>
     <header>
@@ -26,17 +25,32 @@
 
             <article>
                 <h3>Upload Study Material</h3>
-                <p>Prepare to upload your PDF notes and study documents.</p>
+                <p>Upload your PDF notes and study documents.</p>
+                <a href="{% url 'upload_material' %}" class="btn">
+                    Upload PDF
+                </a>
             </article>
 
             <article>
                 <h3>AI Notes Generator</h3>
                 <p>Turn study material into easy-to-understand notes.</p>
+                <a href="{% url 'upload_material' %}" class="btn">
+                    Generate Notes from PDF
+                </a>
+            </article>
+
+            <article>
+                <h3>Study from a Topic</h3>
+                <p>Enter any topic and learn with your AI tutor without uploading a PDF.</p>
+                <a href="{% url 'study_topic' %}" class="btn">
+                    Study a Topic
+                </a>
             </article>
 
             <article>
                 <h3>Practice Quiz</h3>
                 <p>Test your knowledge with practice questions.</p>
+                <p><em>Interactive quizzes will be added in a later step.</em></p>
             </article>
         </section>
     </main>

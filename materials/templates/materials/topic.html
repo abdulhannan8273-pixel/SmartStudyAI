@@ -1,0 +1,234 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study from a Topic | SmartStudy AI</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        /* Normal textbook-style chapter layout */
+        .chapter-section {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            background: #ffffff;
+            border: none;
+            border-bottom: 1px solid #e5e7eb;
+            border-radius: 0;
+            padding: 24px 0;
+            margin: 0;
+            box-shadow: none;
+            overflow-wrap: anywhere;
+        }
+
+        .chapter-section h3 {
+            color: #253b80;
+            font-size: 22px;
+            line-height: 1.4;
+            margin: 0 0 16px;
+        }
+
+        .chapter-content p {
+            font-size: 16px;
+            line-height: 1.9;
+            margin: 0 0 18px;
+            color: #344054;
+        }       
+
+        .chapter-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .chapter-section li {
+            font-size: 16px;
+            line-height: 1.9;
+            margin: 0 0 16px;
+            white-space: normal;
+        }
+
+        .chapter-section li:last-child {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 650px) {
+            .chapter-section {
+                padding: 20px 0;
+            }
+
+            .chapter-section h3 {
+                font-size: 20px;
+            }
+
+            .chapter-section li {
+                font-size: 15px;
+                line-height: 1.8;
+            }
+        }
+
+
+        
+        /* Improve reading comfort */
+        .study-container {      
+            max-width: 900px;
+            margin: 36px auto;
+            padding: 0 24px;
+        }
+
+        .study-panel {      
+            padding: 30px;
+        }
+
+        .chapter-section {      
+            padding: 28px 0;
+        }
+
+        .chapter-section h3 {
+            font-size: 24px;
+            line-height: 1.45;
+            margin-bottom: 18px;
+        }
+
+        .chapter-content p {
+            font-size: 17px;
+            line-height: 1.95;
+            margin: 0 0 20px;
+            color: #344054;
+        }
+
+        .chapter-intro {
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 650px) {
+            .study-container {
+                padding: 0 16px;
+            }
+
+            .study-panel {
+                padding: 20px;
+            }
+
+            .chapter-section h3 {
+                font-size: 21px;
+            }
+
+            .chapter-content p {
+                font-size: 16px;
+                line-height: 1.85;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>SmartStudy AI</h1>
+        <p>Your personal AI learning assistant</p>
+    </header>
+
+    <main class="study-container">
+        <section class="study-panel">
+            <h2>Study from a Topic</h2>
+            <p class="chapter-intro">
+                Choose your learning preferences to generate a detailed chapter
+                with explanations, examples, exam questions and revision notes.
+            </p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="message">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" class="study-form">
+                {% csrf_token %}
+
+                <div class="form-field full-width">
+                    <label for="topic">What do you want to learn?</label>
+                    <input
+                        type="text"
+                        id="topic"
+                        name="topic"
+                        maxlength="300"
+                        value="{{ topic }}"
+                        placeholder="Example: Artificial Intelligence"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="language">Notes language</label>
+                    <select id="language" name="language" required>
+                        <option value="English" {% if language == "English" %}selected{% endif %}>English</option>
+                        <option value="Hindi" {% if language == "Hindi" %}selected{% endif %}>Hindi</option>
+                        <option value="Hinglish" {% if language == "Hinglish" %}selected{% endif %}>Hinglish</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="education_level">Your learning level</label>
+                    <select id="education_level" name="education_level" required>
+                        <option value="School" {% if education_level == "School" %}selected{% endif %}>School</option>
+                        <option value="College / University" {% if education_level == "College / University" %}selected{% endif %}>College / University</option>
+                        <option value="Competitive Exam" {% if education_level == "Competitive Exam" %}selected{% endif %}>Competitive exam</option>
+                        <option value="Self-learning" {% if education_level == "Self-learning" %}selected{% endif %}>Self-learning</option>
+                    </select>
+                </div>
+
+                <div class="form-field full-width">
+                    <label for="purpose">Your learning goal</label>
+                    <select id="purpose" name="purpose" required>
+                        <option value="All" {% if purpose == "All" %}selected{% endif %}>Exam preparation, understanding and revision</option>
+                        <option value="Exam Preparation" {% if purpose == "Exam Preparation" %}selected{% endif %}>Exam preparation</option>
+                        <option value="Conceptual Understanding" {% if purpose == "Conceptual Understanding" %}selected{% endif %}>Understand concepts deeply</option>
+                        <option value="Revision" {% if purpose == "Revision" %}selected{% endif %}>Revision</option>
+                    </select>
+                </div>
+
+                <button type="submit">Generate Detailed Study Notes</button>
+            </form>
+        </section>
+
+        {% if notes %}
+            <section>
+                <div class="study-panel">
+                    <h2>{{ topic }}</h2>
+                    <p class="chapter-intro">
+                        Learning level: {{ education_level }} ·
+                        Language: {{ language }} ·
+                        Goal: {{ purpose }}
+                    </p>
+                </div>
+
+                {% for section in notes %}
+                    <article class="chapter-section">
+                        <h3>{{ section.heading }}</h3>
+                        <div class="chapter-content">
+                            {% for point in section.points %}
+                                <p>{{ point|linebreaksbr }}</p>
+                            {% empty %}
+                                <p>No content was returned for this section.</p>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        <nav class="page-links">
+            <a href="{% url 'home' %}">Back to Dashboard</a>
+            <a href="{% url 'upload_material' %}">Study from a PDF</a>
+        </nav>
+    </main>
+
+    <footer>
+        <p>SmartStudy AI | BCA Industrial Training Project</p>
+    </footer>
+</body>
+</html>

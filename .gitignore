@@ -18,3 +18,6 @@ db.sqlite3
 media/
 
 .env
+*_backup.html
+report_screenshots/
+materials/templates/templetes/

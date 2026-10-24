@@ -18,5 +18,17 @@ urlpatterns = [
     "notes/<int:material_id>/download/",
     views.download_notes_pdf,
     name="download_notes_pdf",
-),
+    ),
+    path(
+        "saved/",
+        views.saved_notes_list,
+        name="saved_notes_list",
+    ),
+    path(
+        "saved/<int:notes_id>/",
+        views.saved_notes_detail,
+        name="saved_notes_detail",
+    ),
+    path("saved/", views.saved_notes_list, name="saved_notes_list"),
+    path("saved/<int:notes_id>/", views.saved_notes_detail, name="saved_notes_detail"),
 ]

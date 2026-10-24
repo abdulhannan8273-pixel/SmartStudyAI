@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Saved Notes - SmartStudy AI</title>
+<style>
+  :root{--p:#4f46e5;--p2:#7c3aed;--bg:#f4f6fb;--ink:#1e293b;--mute:#64748b;--line:#e2e8f0}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  .nav{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:#fff;border-bottom:1px solid var(--line)}
+  .brand{font-weight:800;font-size:20px;background:linear-gradient(90deg,var(--p),var(--p2));-webkit-background-clip:text;color:transparent}
+  .nav a{color:var(--mute);text-decoration:none;margin-left:20px;font-weight:600}
+  .nav a:hover{color:var(--p)}
+  .hero{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;text-align:center;padding:44px 20px}
+  .hero h1{margin:0 0 6px;font-size:32px}
+  .hero p{margin:0;opacity:.9}
+  .wrap{max-width:900px;margin:30px auto 60px;padding:0 16px}
+  .item{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(30,41,59,.08);padding:18px 22px;margin-bottom:14px}
+  .item h3{margin:0 0 6px;font-size:19px}
+  .tags span{display:inline-block;background:#eef2ff;color:var(--p);padding:3px 11px;border-radius:999px;font-size:12px;font-weight:700;margin-right:6px}
+  .date{color:var(--mute);font-size:13px;margin-top:6px}
+  .open{background:linear-gradient(90deg,var(--p),var(--p2));color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;font-weight:700;white-space:nowrap}
+  .empty{background:#fff;border-radius:16px;padding:40px;text-align:center;color:var(--mute)}
+  @media(max-width:600px){.item{flex-direction:column;align-items:flex-start;gap:12px}}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">SmartStudy AI</div>
+  <div><a href="/">Dashboard</a><a href="/materials/upload/">Upload PDF</a><a href="/materials/topic/">Study Topic</a><a href="/materials/saved/">My Notes</a></div>
+</div>
+
+<div class="hero">
+  <h1>My Saved Notes</h1>
+  <p>Reopen your chapters anytime, no AI call needed</p>
+</div>
+
+<div class="wrap">
+  {% for item in saved %}
+    <div class="item">
+      <div>
+        <h3>{{ item.topic }}</h3>
+        <div class="tags"><span>{{ item.language }}</span><span>{{ item.education_level }}</span><span>{{ item.purpose }}</span></div>
+        <div class="date">Saved on {{ item.created_at|date:"d M Y, h:i A" }}</div>
+      </div>
+      <a class="open" href="{% url 'saved_notes_detail' item.id %}">Open</a>
+    </div>
+  {% empty %}
+    <div class="empty">No saved notes yet. Generate your first chapter from <a href="/materials/topic/">Study Topic</a>.</div>
+  {% endfor %}
+</div>
+</body>
+</html>

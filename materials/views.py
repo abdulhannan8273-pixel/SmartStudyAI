@@ -4,9 +4,9 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import StudyMaterial, ExtractedMaterialText
+from .models import StudyMaterial, ExtractedMaterialText, SavedStudyNotes
 from io import BytesIO
 
 from django.http import HttpResponse
@@ -468,6 +468,46 @@ Return JSON only.
 
 
 
+def clean_notes(notes):
+    cleaned = []
+    for section in notes:
+        if not isinstance(section, dict):
+            continue
+        points = []
+        for point in section.get("points", []):
+            text = str(point).replace("\\n", "\n")
+            text = re.sub(r"```[a-zA-Z]*", "", text)
+            text = text.replace("```", "").strip()
+            if text:
+                points.append(text)
+        cleaned.append({
+            "heading": section.get("heading", ""),
+            "points": points,
+        })
+    return cleaned
+
+
+def saved_notes_list(request):
+    saved = SavedStudyNotes.objects.order_by("-created_at")
+    return render(request, "materials/saved_list.html", {"saved": saved})
+
+
+def saved_notes_detail(request, notes_id):
+    item = get_object_or_404(SavedStudyNotes, id=notes_id)
+    return render(
+        request,
+        "materials/topic.html",
+        {
+            "topic": item.topic,
+            "notes": clean_notes(item.notes_json),
+            "language": item.language,
+            "education_level": item.education_level,
+            "purpose": item.purpose,
+        },
+    )
+
+
+
 
 def study_topic(request):
     notes = []
@@ -516,6 +556,23 @@ def study_topic(request):
                     education_level=education_level,
                     purpose=purpose,
                 )
+                notes = clean_notes(notes)
+
+                failed = not notes or (
+                    isinstance(notes[0], dict)
+                    and notes[0].get("heading") == "Notes Generation Failed"
+                                    
+                )
+                if not failed:
+                    SavedStudyNotes.objects.create(
+                        topic=topic,
+                        language=language,
+                        education_level=education_level,
+                        purpose=purpose,
+                        notes_json=notes,
+                    )
+                    messages.success(request, "Notes saved successfully.")
+
             except Exception as error:
                 print("Topic study generation failed:", type(error).__name__)
                 messages.error(

@@ -1,53 +1,99 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Notes | SmartStudy AI</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Notes | SmartStudy AI</title>
+<style>
+  :root{--p:#4f46e5;--p2:#7c3aed;--bg:#f4f6fb;--ink:#1e293b;--mute:#64748b;--line:#e2e8f0}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.7}
+  .nav{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:#fff;border-bottom:1px solid var(--line)}
+  .brand{font-weight:800;font-size:20px;background:linear-gradient(90deg,var(--p),var(--p2));-webkit-background-clip:text;color:transparent}
+  .nav a{color:var(--mute);text-decoration:none;margin-left:20px;font-weight:600}
+  .nav a:hover{color:var(--p)}
+  .hero{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;text-align:center;padding:44px 20px}
+  .hero h1{margin:0 0 6px;font-size:32px}
+  .hero p{margin:0;opacity:.92}
+  .wrap{max-width:900px;margin:30px auto 60px;padding:0 16px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .btn{background:linear-gradient(90deg,var(--p),var(--p2));color:#fff;text-decoration:none;padding:11px 18px;border-radius:10px;font-weight:700;border:0;cursor:pointer;font-size:15px;font-family:inherit}
+  .ghost{background:#fff;border:1.5px solid var(--p);color:var(--p)}
+  .chapter{background:#fff;border-radius:18px;box-shadow:0 10px 30px rgba(30,41,59,.08);padding:36px 44px}
+  .chapter h2{margin:0 0 4px;font-size:26px}
+  .chapter .sub{color:var(--mute);margin:0 0 10px}
+  .sec{padding:20px 0;border-bottom:1px solid var(--line)}
+  .sec:last-child{border-bottom:0}
+  .sec h3{margin:0 0 12px;font-size:22px;color:var(--p);border-left:5px solid var(--p2);padding-left:12px}
+  .sec p{margin:0 0 12px;font-size:17px;white-space:pre-wrap}
+  .empty{color:var(--mute);text-align:center;padding:24px}
+  #loader{display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:50;align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center}
+  .spin{width:56px;height:56px;border:6px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:s 1s linear infinite;margin-bottom:16px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  footer{text-align:center;padding:22px;color:var(--mute);border-top:1px solid var(--line);background:#fff}
+  @media(max-width:700px){.chapter{padding:22px}.hero h1{font-size:25px}}
+  @media print{.nav,.hero,.toolbar,footer,#loader{display:none!important}
+    body{background:#fff}.wrap{margin:0;max-width:100%}.chapter{box-shadow:none;padding:0}.sec{page-break-inside:avoid}}
+</style>
 </head>
 <body>
-    <header>
-        <h1>SmartStudy AI</h1>
-        <p>Generated Study Notes</p>
-    </header>
 
-    <main>
-        <section>
-            <h2>{{ material.title }}</h2>
-            <p>Review the key points extracted from your study material.</p>
+<div class="nav">
+  <div class="brand">SmartStudy AI</div>
+  <div>
+    <a href="{% url 'home' %}">Dashboard</a>
+    <a href="{% url 'upload_material' %}">Upload PDF</a>
+    <a href="{% url 'study_topic' %}">Study Topic</a>
+    <a href="{% url 'saved_notes_list' %}">My Notes</a>
+  </div>
+</div>
 
-            <p>
-                <a href="{% url 'download_notes_pdf' material.id %}">
-                    Download Notes as PDF
-                </a>
-            </p>
+<div class="hero">
+  <h1>Generated Study Notes</h1>
+  <p>Notes created from your uploaded PDF</p>
+</div>
 
-            {% for section in notes %}
-                <article>
-                    <h3>{{ section.heading }}</h3>
+<div class="wrap">
+  <div class="toolbar">
+    <a class="btn" href="{% url 'download_notes_pdf' material.id %}" id="pdfBtn">Download Notes as PDF</a>
+    <button class="btn ghost" onclick="window.print()">Print this page</button>
+    <a class="btn ghost" href="{% url 'upload_material' %}">Back to Study Materials</a>
+  </div>
 
-                    <ul>
-                        {% for point in section.points %}
-                            <li>{{ point }}</li>
-                        {% empty %}
-                            <li>No points found in this section.</li>
-                        {% endfor %}
-                    </ul>
-                </article>
-            {% empty %}
-                <p>No notes could be generated from this PDF.</p>
-            {% endfor %}
-        </section>
+  <div class="chapter">
+    <h2>{{ material.title }}</h2>
+    <p class="sub">Review the notes generated from your study material.</p>
 
-        <p><a href="{% url 'upload_material' %}">Back to Study Materials</a></p>
-        <p><a href="{% url 'home' %}">Back to Dashboard</a></p>
-    </main>
+    {% for section in notes %}
+      <div class="sec">
+        <h3>{{ section.heading }}</h3>
+        {% for point in section.points %}
+          <p>{{ point }}</p>
+        {% empty %}
+          <p>No points found in this section.</p>
+        {% endfor %}
+      </div>
+    {% empty %}
+      <div class="empty">No notes could be generated from this PDF.</div>
+    {% endfor %}
+  </div>
+</div>
 
-    <footer>
-        <p>SmartStudy AI | BCA Industrial Training Project</p>
-    </footer>
+<div id="loader">
+  <div class="spin"></div>
+  <h2>Preparing your PDF...</h2>
+  <p>This can take 20-40 seconds. Please wait.</p>
+</div>
+
+<script>
+  document.getElementById("pdfBtn").addEventListener("click", function () {
+    document.getElementById("loader").style.display = "flex";
+    setTimeout(function () {
+      document.getElementById("loader").style.display = "none";
+    }, 45000);
+  });
+</script>
+
+<footer>SmartStudy AI | BCA Industrial Training Project</footer>
 </body>
 </html>

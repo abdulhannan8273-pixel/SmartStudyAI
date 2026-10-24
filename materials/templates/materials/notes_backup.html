@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Notes | SmartStudy AI</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>SmartStudy AI</h1>
+        <p>Generated Study Notes</p>
+    </header>
+
+    <main>
+        <section>
+            <h2>{{ material.title }}</h2>
+            <p>Review the key points extracted from your study material.</p>
+
+            <p>
+                <a href="{% url 'download_notes_pdf' material.id %}">
+                    Download Notes as PDF
+                </a>
+            </p>
+
+            {% for section in notes %}
+                <article>
+                    <h3>{{ section.heading }}</h3>
+
+                    <ul>
+                        {% for point in section.points %}
+                            <li>{{ point }}</li>
+                        {% empty %}
+                            <li>No points found in this section.</li>
+                        {% endfor %}
+                    </ul>
+                </article>
+            {% empty %}
+                <p>No notes could be generated from this PDF.</p>
+            {% endfor %}
+        </section>
+
+        <p><a href="{% url 'upload_material' %}">Back to Study Materials</a></p>
+        <p><a href="{% url 'home' %}">Back to Dashboard</a></p>
+    </main>
+
+    <footer>
+        <p>SmartStudy AI | BCA Industrial Training Project</p>
+    </footer>
+</body>
+</html>

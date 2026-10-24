@@ -102,6 +102,21 @@ def upload_material(request):
 
 
 
+def call_groq_with_retry(client, **kwargs):
+    import time
+    from openai import RateLimitError
+
+    for attempt in range(4):
+        try:
+            return client.chat.completions.create(**kwargs)
+        except RateLimitError:
+            if attempt == 3:
+                raise
+            time.sleep(20 * (attempt + 1))
+
+
+
+
 
 def generate_study_notes(text, language="English", education_level="Not specified", purpose="All"):
     import json
@@ -140,6 +155,10 @@ def generate_study_notes(text, language="English", education_level="Not specifie
     )
 
     all_notes = []
+    MAX_PARTS = 3
+    total_parts = len(chunks)
+    skipped_parts = max(0, total_parts - MAX_PARTS)
+    chunks = chunks[:MAX_PARTS]
     failed_chunks = []
 
     for index, chunk in enumerate(chunks, start=1):
@@ -196,7 +215,8 @@ SOURCE TEXT:
 """
 
         try:
-            response = client.chat.completions.create(
+            response = call_groq_with_retry(
+                client,
                 model="openai/gpt-oss-20b",
                 messages=[
                     {
@@ -219,7 +239,12 @@ SOURCE TEXT:
                 raise ValueError("Empty AI response.")
 
             result = json.loads(content)
-            sections = result.get("sections", [])
+            if isinstance(result, list):
+                sections = result
+            elif isinstance(result, dict):
+                sections = result.get("sections", [])
+            else:
+                raise ValueError("Unexpected AI response format.")
 
             if not isinstance(sections, list):
                 raise ValueError("Invalid sections in AI response.")
@@ -270,13 +295,32 @@ SOURCE TEXT:
                 "Check the server terminal and try again."
             ],
         }]
+    if skipped_parts:
+        all_notes.insert(0, {
+            "heading": "Large PDF Notice",
+            "points": [
+                f"This PDF was split into {total_parts} parts. "
+                f"Only the first {MAX_PARTS} parts were processed "
+                "because of free-tier AI limits.",
+                "The notes below cover the beginning of the document only.",
+            ],
+        })
+
 
     return all_notes
 
 
 
-def create_notes(request, material_id):
-    material = StudyMaterial.objects.get(id=material_id)
+def get_pdf_notes(material):
+    key = f"[PDF] {material.title} (id {material.id})"
+
+    saved = (
+        SavedStudyNotes.objects.filter(topic=key)
+        .order_by("-created_at")
+        .first()
+    )
+    if saved:
+        return saved.notes_json
 
     try:
         extracted_text = material.extracted_text.content
@@ -288,6 +332,26 @@ def create_notes(request, material_id):
 
     notes = generate_study_notes(extracted_text)
 
+    bad_headings = ("Processing Notice", "Notes Could Not Be Generated")
+    failed = any(
+        isinstance(s, dict) and s.get("heading") in bad_headings
+        for s in notes
+    )
+    if not failed:
+        SavedStudyNotes.objects.create(
+            topic=key,
+            language="English",
+            education_level="Not specified",
+            purpose="All",
+            notes_json=notes,
+        )
+    return notes
+
+
+def create_notes(request, material_id):
+    material = get_object_or_404(StudyMaterial, id=material_id)
+    notes = get_pdf_notes(material)
+
     return render(
         request,
         "materials/notes.html",
@@ -296,7 +360,6 @@ def create_notes(request, material_id):
             "notes": notes,
         },
     )
-
 
 def generate_topic_notes(
     topic,
@@ -487,6 +550,16 @@ def clean_notes(notes):
     return cleaned
 
 
+def delete_saved_notes(request, notes_id):
+    if request.method == "POST":
+        item = get_object_or_404(SavedStudyNotes, id=notes_id)
+        item.delete()
+        messages.success(request, "Saved notes deleted.")
+    return redirect("saved_notes_list")
+
+
+
+
 def saved_notes_list(request):
     saved = SavedStudyNotes.objects.order_by("-created_at")
     return render(request, "materials/saved_list.html", {"saved": saved})
@@ -594,17 +667,8 @@ def study_topic(request):
 
 
 def download_notes_pdf(request, material_id):
-    material = StudyMaterial.objects.get(id=material_id)
-
-    try:
-        extracted_text = material.extracted_text.content
-    except ExtractedMaterialText.DoesNotExist:
-        with pymupdf.open(material.pdf_file.path) as pdf:
-            extracted_text = "\n".join(
-                page.get_text("text") for page in pdf
-            ).strip()
-
-    notes = generate_study_notes(extracted_text)
+    material = get_object_or_404(StudyMaterial, id=material_id)
+    notes = get_pdf_notes(material)
 
     buffer = BytesIO()
     document = SimpleDocTemplate(

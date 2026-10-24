@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Study Material | SmartStudy AI</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>SmartStudy AI</h1>
+        <p>Upload your study material</p>
+    </header>
+
+    <main>
+        <section>
+            <h2>Upload a PDF</h2>
+            <p>Select your study document to add it to your materials library.</p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <p>
+                    <label for="title">Document title</label><br>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        maxlength="200"
+                        required
+                    >
+                </p>
+
+                <p>
+                    <label for="pdf_file">Choose PDF file</label><br>
+                    <input
+                        type="file"
+                        id="pdf_file"
+                        name="pdf_file"
+                        accept=".pdf,application/pdf"
+                        required
+                    >
+                </p>
+
+                <button type="submit">Upload PDF</button>
+            </form>
+        </section>
+
+        <section>
+            <h2>My Study Materials</h2>
+
+            {% for material in materials %}
+                <article>
+                    <h3>{{ material.title }}</h3>
+                    <p>Uploaded: {{ material.uploaded_at }}</p>
+
+                    <a href="{% url 'create_notes' material.id %}" class="btn">
+                        Generate Study Notes
+                    </a>
+                </article>
+            {% empty %}
+                <p>No study materials uploaded yet.</p>
+            {% endfor %}
+        </section>
+
+        
+    </main>
+
+        {% if extracted_text %}
+        <section>
+            <h2>Extracted PDF Text Preview</h2>
+            <p>SmartStudy AI has successfully read text from your PDF.</p>
+            <pre style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ extracted_text }}</pre>
+        </section>
+        {% endif %}
+
+<p><a href="/">Back to Dashboard</a></p>
+
+    </main>
+
+    <footer>
+        <p>SmartStudy AI | BCA Industrial Training Project</p>
+    </footer>
+</body>
+</html>

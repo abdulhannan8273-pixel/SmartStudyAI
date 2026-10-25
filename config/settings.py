@@ -15,12 +15,17 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv(BASE_DIR / ".env")
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-f5enj=)6(pj=r-u-@6##hm-k1@o!em4atzojz*bsqveb4f*&e^'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-dev-only-change-me")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -132,3 +137,8 @@ MAILERS = {
 # Uploaded media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv(BASE_DIR / ".env")

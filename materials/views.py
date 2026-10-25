@@ -550,6 +550,22 @@ def clean_notes(notes):
     return cleaned
 
 
+def delete_material(request, material_id):
+    if request.method == "POST":
+        material = get_object_or_404(StudyMaterial, id=material_id)
+
+        key = f"[PDF] {material.title} (id {material.id})"
+        SavedStudyNotes.objects.filter(topic=key).delete()
+
+        if material.pdf_file:
+            material.pdf_file.delete(save=False)
+        material.delete()
+
+        messages.success(request, "Study material deleted.")
+    return redirect("upload_material")
+
+
+
 def delete_saved_notes(request, notes_id):
     if request.method == "POST":
         item = get_object_or_404(SavedStudyNotes, id=notes_id)

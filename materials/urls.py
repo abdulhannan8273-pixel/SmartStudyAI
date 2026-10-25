@@ -17,4 +17,9 @@ urlpatterns = [
         views.delete_saved_notes,
         name="delete_saved_notes",
     ),
+    path(
+        "material/<int:material_id>/delete/",
+        views.delete_material,
+        name="delete_material",
+    ),
 ]

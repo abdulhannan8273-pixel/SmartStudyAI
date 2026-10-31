@@ -1,0 +1,22 @@
+{% extends "materials/quiz_base.html" %}
+{% block title %}My Scores{% endblock %}
+{% block heading %}My Quiz Scores{% endblock %}
+{% block sub %}Your quiz history and progress{% endblock %}
+{% block content %}
+  <div class="stats">
+    <div class="stat"><b>{{ count }}</b>Quizzes taken</div>
+    <div class="stat"><b>{{ best }}%</b>Best score</div>
+    <div class="stat"><b>{{ avg }}%</b>Average score</div>
+  </div>
+  {% if attempts %}
+  <table>
+    <tr><th>Topic</th><th>Score</th><th>Percent</th><th>Date</th></tr>
+    {% for a in attempts %}
+      <tr><td>{{ a.quiz.notes.topic }}</td><td>{{ a.score }} / {{ a.total }}</td><td>{{ a.percent }}%</td><td>{{ a.taken_at|date:"d M Y, h:i A" }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+    <div class="qcard">No quiz attempts yet. <a href="{% url 'quiz_home' %}">Take your first quiz</a>.</div>
+  {% endif %}
+  <p><a class="btn ghost" href="{% url 'quiz_home' %}">Back to quizzes</a></p>
+{% endblock %}

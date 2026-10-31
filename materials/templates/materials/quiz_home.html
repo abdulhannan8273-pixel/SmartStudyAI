@@ -1,0 +1,19 @@
+{% extends "materials/quiz_base.html" %}
+{% block title %}Practice Quiz{% endblock %}
+{% block heading %}Practice Quiz{% endblock %}
+{% block sub %}Choose a saved chapter and test yourself with 5 MCQs{% endblock %}
+{% block content %}
+  <p style="text-align:right"><a class="btn ghost" href="{% url 'quiz_scores' %}">View My Scores</a></p>
+  {% for r in rows %}
+    <div class="item">
+      <div>
+        <h3>{{ r.notes.topic }}</h3>
+        <div class="sub">{{ r.notes.language }} | {{ r.notes.education_level }} |
+          {% if r.best %}Best score: {{ r.best }}{% else %}Not attempted yet{% endif %}</div>
+      </div>
+      <a class="btn js-load" href="{% url 'quiz_take' r.notes.id %}">{% if r.has_quiz %}Start Quiz{% else %}Create Quiz{% endif %}</a>
+    </div>
+  {% empty %}
+    <div class="qcard">No saved notes yet. Generate notes from <a href="{% url 'study_topic' %}">Study Topic</a> first, then come back to take a quiz.</div>
+  {% endfor %}
+{% endblock %}

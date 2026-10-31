@@ -6,7 +6,9 @@ from dotenv import load_dotenv
 load_dotenv()
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import StudyMaterial, ExtractedMaterialText, SavedStudyNotes
+from .models import (
+    StudyMaterial, ExtractedMaterialText, SavedStudyNotes, Quiz, QuizAttempt,
+)
 from io import BytesIO
 
 from django.http import HttpResponse
@@ -736,4 +738,189 @@ def download_notes_pdf(request, material_id):
     return response
 
 
+def build_quiz_source(notes_json, max_chars=7000):
+    parts = []
+    for section in notes_json:
+        if not isinstance(section, dict):
+            continue
+        heading = str(section.get("heading", ""))
+        low = heading.lower()
+        if "multiple-choice" in low or "exam question" in low:
+            continue
+        points = " ".join(str(p) for p in section.get("points", []))
+        parts.append(f"{heading}: {points}")
+    return "\n".join(parts)[:max_chars]
 
+
+def generate_quiz_questions(notes):
+    import json
+    import random
+    from dotenv import load_dotenv
+    from openai import OpenAI
+
+    load_dotenv()
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY is missing from the .env file.")
+
+    source = build_quiz_source(notes.notes_json)
+    if len(source) < 200:
+        raise ValueError("Not enough notes text to make a quiz.")
+
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://api.groq.com/openai/v1",
+        timeout=90.0,
+        max_retries=1,
+    )
+
+    prompt = f"""Create exactly 5 multiple-choice questions from the study notes below.
+
+Rules:
+- Each question has exactly 4 options and exactly one correct option.
+- Test understanding of the concepts, not trivial wording.
+- Do not repeat questions.
+- Write in {notes.language} (Hinglish means Hindi written in Roman script).
+- Return valid JSON only, in this form:
+{{"questions": [{{"question": "...", "options": ["...", "...", "...", "..."], "answer_index": 0, "explanation": "one short sentence"}}]}}
+
+Topic: {notes.topic}
+
+NOTES:
+{source}
+"""
+
+    response = call_groq_with_retry(
+        client,
+        model="openai/gpt-oss-20b",
+        messages=[
+            {"role": "system",
+             "content": "You are a careful exam setter. Return valid JSON only."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.3,
+        max_tokens=4000,
+        response_format={"type": "json_object"},
+    )
+    content = response.choices[0].message.content
+    if not content:
+        raise ValueError("Empty AI response.")
+
+    data = json.loads(content)
+    raw = data.get("questions", []) if isinstance(data, dict) else data
+    if not isinstance(raw, list):
+        raise ValueError("Unexpected AI response format.")
+
+    questions = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        q = str(item.get("question", "")).strip()
+        options = item.get("options")
+        idx = item.get("answer_index")
+        if (not q or not isinstance(options, list) or len(options) != 4
+                or not isinstance(idx, int) or not 0 <= idx <= 3):
+            continue
+        options = [str(o).strip() for o in options]
+        if not all(options) or len(set(options)) != 4:
+            continue
+        correct = options[idx]
+        random.shuffle(options)
+        questions.append({
+            "question": q,
+            "options": options,
+            "answer_index": options.index(correct),
+            "explanation": str(item.get("explanation", "")).strip(),
+        })
+
+    if len(questions) < 3:
+        raise ValueError("Could not make a valid quiz. Please try again.")
+    return questions[:5]
+
+
+def get_or_create_quiz(notes):
+    quiz = Quiz.objects.filter(notes=notes).first()
+    if quiz:
+        return quiz
+    questions = generate_quiz_questions(notes)
+    return Quiz.objects.create(notes=notes, questions_json=questions)
+
+
+def quiz_home(request):
+    rows = []
+    for n in SavedStudyNotes.objects.order_by("-created_at"):
+        quiz = Quiz.objects.filter(notes=n).first()
+        best = None
+        if quiz:
+            attempts = list(quiz.attempts.all())
+            if attempts:
+                top = max(attempts, key=lambda a: a.score)
+                best = f"{top.score}/{top.total}"
+        rows.append({"notes": n, "has_quiz": bool(quiz), "best": best})
+    return render(request, "materials/quiz_home.html", {"rows": rows})
+
+
+def quiz_take(request, notes_id):
+    notes = get_object_or_404(SavedStudyNotes, id=notes_id)
+    try:
+        quiz = get_or_create_quiz(notes)
+    except Exception as error:
+        print("Quiz generation failed:", type(error).__name__)
+        messages.error(
+            request, "Quiz could not be created. Please try again in a minute."
+        )
+        return redirect("quiz_home")
+
+    questions = quiz.questions_json
+    result = request.session.pop(f"quiz_result_{notes.id}", None)
+
+    if request.method == "POST":
+        review = []
+        score = 0
+        for i, q in enumerate(questions):
+            try:
+                chosen = int(request.POST.get(f"q{i}", ""))
+            except ValueError:
+                chosen = None
+            correct = q["answer_index"]
+            if chosen == correct:
+                score += 1
+            review.append({
+                "n": i + 1,
+                "question": q["question"],
+                "explanation": q.get("explanation", ""),
+                "is_right": chosen == correct,
+                "options": [
+                    {"text": text, "is_correct": j == correct,
+                     "is_chosen": j == chosen}
+                    for j, text in enumerate(q["options"])
+                ],
+            })
+        total = len(questions)
+        QuizAttempt.objects.create(quiz=quiz, score=score, total=total)
+        request.session[f"quiz_result_{notes.id}"] = {
+            "score": score,
+            "total": total,
+            "percent": round(100 * score / total) if total else 0,
+            "review": review,
+        }
+        return redirect("quiz_take", notes_id=notes.id)
+
+    return render(request, "materials/quiz.html", {
+        "notes": notes, "questions": questions, "result": result,
+    })
+
+def quiz_scores(request):
+    attempts = list(
+        QuizAttempt.objects.select_related("quiz__notes").order_by("-taken_at")[:100]
+    )
+    percents = []
+    for a in attempts:
+        a.percent = round(100 * a.score / a.total) if a.total else 0
+        percents.append(a.percent)
+    return render(request, "materials/quiz_scores.html", {
+        "attempts": attempts,
+        "taken": len(attempts),
+        "best_pct": max(percents) if percents else 0,
+        "avg_pct": round(sum(percents) / len(percents)) if percents else 0,
+    })

@@ -39,3 +39,26 @@ class SavedStudyNotes(models.Model):
 
     def __str__(self):
         return f"{self.topic} - {self.created_at:%Y-%m-%d}"
+
+
+class Quiz(models.Model):
+    notes = models.OneToOneField(
+        SavedStudyNotes, on_delete=models.CASCADE, related_name="quiz"
+    )
+    questions_json = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Quiz for {self.notes.topic}"
+
+
+class QuizAttempt(models.Model):
+    quiz = models.ForeignKey(
+        Quiz, on_delete=models.CASCADE, related_name="attempts"
+    )
+    score = models.PositiveIntegerField()
+    total = models.PositiveIntegerField()
+    taken_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.quiz.notes.topic}: {self.score}/{self.total}"

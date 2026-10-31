@@ -865,14 +865,16 @@ def quiz_take(request, notes_id):
     try:
         quiz = get_or_create_quiz(notes)
     except Exception as error:
-        print("Quiz generation failed:", type(error).__name__)
+        print("Quiz generation failed:", type(error).__name__, str(error)[:200])
         messages.error(
-            request, "Quiz could not be created. Please try again in a minute."
+            request,
+            f"Quiz could not be created ({type(error).__name__}: {str(error)[:120]}). "
+            "Please try again in a minute.",
         )
         return redirect("quiz_home")
 
     questions = quiz.questions_json
-    result = request.session.pop(f"quiz_result_{notes.id}", None)
+    result = None
 
     if request.method == "POST":
         review = []
@@ -898,17 +900,17 @@ def quiz_take(request, notes_id):
             })
         total = len(questions)
         QuizAttempt.objects.create(quiz=quiz, score=score, total=total)
-        request.session[f"quiz_result_{notes.id}"] = {
+        result = {
             "score": score,
             "total": total,
             "percent": round(100 * score / total) if total else 0,
             "review": review,
         }
-        return redirect("quiz_take", notes_id=notes.id)
 
     return render(request, "materials/quiz.html", {
         "notes": notes, "questions": questions, "result": result,
     })
+
 
 def quiz_scores(request):
     attempts = list(

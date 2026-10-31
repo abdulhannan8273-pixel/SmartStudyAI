@@ -1,22 +1,44 @@
 {% extends "materials/quiz_base.html" %}
-{% block title %}My Scores{% endblock %}
-{% block heading %}My Quiz Scores{% endblock %}
-{% block sub %}Your quiz history and progress{% endblock %}
+{% block title %}Quiz{% endblock %}
+{% block heading %}Quiz: {{ notes.topic }}{% endblock %}
+{% block sub %}Choose one answer for every question{% endblock %}
 {% block content %}
-  <div class="stats">
-    <div class="stat"><b>{{ count }}</b>Quizzes taken</div>
-    <div class="stat"><b>{{ best }}%</b>Best score</div>
-    <div class="stat"><b>{{ avg }}%</b>Average score</div>
+{% if result %}
+  <div class="score">
+    <div>Your score</div>
+    <b>{{ result.score }} / {{ result.total }}</b>
+    <div class="sub">{{ result.percent }}%</div>
   </div>
-  {% if attempts %}
-  <table>
-    <tr><th>Topic</th><th>Score</th><th>Percent</th><th>Date</th></tr>
-    {% for a in attempts %}
-      <tr><td>{{ a.quiz.notes.topic }}</td><td>{{ a.score }} / {{ a.total }}</td><td>{{ a.percent }}%</td><td>{{ a.taken_at|date:"d M Y, h:i A" }}</td></tr>
+  {% for r in result.review %}
+    <div class="qcard">
+      <div class="qtext">Q{{ r.n }}. {{ r.question }}</div>
+      {% for o in r.options %}
+        <div class="opt {% if o.is_correct %}right{% elif o.is_chosen %}wrong{% endif %}">
+          {{ o.text }}{% if o.is_correct %} &#10003;{% elif o.is_chosen %} &#10007; (your answer){% endif %}
+        </div>
+      {% endfor %}
+      {% if r.explanation %}<div class="why">{{ r.explanation }}</div>{% endif %}
+    </div>
+  {% endfor %}
+  <p>
+    <a class="btn" href="{% url 'quiz_take' notes.id %}">Try again</a>
+    <a class="btn ghost" href="{% url 'quiz_scores' %}">My Scores</a>
+    <a class="btn ghost" href="{% url 'quiz_home' %}">All quizzes</a>
+  </p>
+{% else %}
+  <form method="post">
+    {% csrf_token %}
+    {% for q in questions %}
+      <div class="qcard">
+        <div class="qtext">Q{{ forloop.counter }}. {{ q.question }}</div>
+        {% for opt in q.options %}
+          <label class="opt">
+            <input type="radio" name="q{{ forloop.parentloop.counter0 }}" value="{{ forloop.counter0 }}" required> {{ opt }}
+          </label>
+        {% endfor %}
+      </div>
     {% endfor %}
-  </table>
-  {% else %}
-    <div class="qcard">No quiz attempts yet. <a href="{% url 'quiz_home' %}">Take your first quiz</a>.</div>
-  {% endif %}
-  <p><a class="btn ghost" href="{% url 'quiz_home' %}">Back to quizzes</a></p>
+    <button class="btn" type="submit">Submit Quiz</button>
+  </form>
+{% endif %}
 {% endblock %}

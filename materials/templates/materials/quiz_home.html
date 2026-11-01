@@ -1,17 +1,35 @@
 {% extends "materials/quiz_base.html" %}
 {% block title %}Practice Quiz{% endblock %}
 {% block heading %}Practice Quiz{% endblock %}
-{% block sub %}Choose a saved chapter and test yourself with 5 MCQs{% endblock %}
+{% block sub %}Choose a saved chapter, pick how many questions, and test yourself{% endblock %}
 {% block content %}
   <p style="text-align:right"><a class="btn ghost" href="{% url 'quiz_scores' %}">View My Scores</a></p>
   {% for r in rows %}
-    <div class="item">
+    <div class="item" style="flex-wrap:wrap">
       <div>
-        <h3>{{ r.notes.topic }}</h3>
+        <h3>{{ r.title }}</h3>
         <div class="sub">{{ r.notes.language }} | {{ r.notes.education_level }} |
+          {% if r.has_quiz %}{{ r.count }} questions ready | {% endif %}
           {% if r.best %}Best score: {{ r.best }}{% else %}Not attempted yet{% endif %}</div>
       </div>
-      <a class="btn js-load" href="{% url 'quiz_take' r.notes.id %}">{% if r.has_quiz %}Start Quiz{% else %}Create Quiz{% endif %}</a>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        {% if r.has_quiz %}
+          <form method="get" action="{% url 'quiz_take' r.notes.id %}" style="display:flex;gap:8px;align-items:center;margin:0">
+            <select name="n" style="padding:9px;border-radius:10px;border:1.5px solid #e2e8f0;font-family:inherit">
+              {% for s in r.sizes %}<option value="{{ s }}">{{ s }} questions{% if forloop.last %} (all){% endif %}</option>{% endfor %}
+            </select>
+            <button class="btn" type="submit">Start Quiz</button>
+          </form>
+          {% if r.can_add %}
+          <form method="post" action="{% url 'quiz_add_more' r.notes.id %}" style="margin:0">
+            {% csrf_token %}
+            <button class="btn ghost js-load" type="submit">Add 10 more</button>
+          </form>
+          {% endif %}
+        {% else %}
+          <a class="btn js-load" href="{% url 'quiz_take' r.notes.id %}">Create Quiz</a>
+        {% endif %}
+      </div>
     </div>
   {% empty %}
     <div class="qcard">No saved notes yet. Generate notes from <a href="{% url 'study_topic' %}">Study Topic</a> first, then come back to take a quiz.</div>

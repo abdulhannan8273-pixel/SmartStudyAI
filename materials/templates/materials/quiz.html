@@ -21,19 +21,20 @@
     </div>
   {% endfor %}
   <p>
-    <a class="btn" href="{% url 'quiz_take' notes.id %}">Try again</a>
+    <a class="btn" href="{% url 'quiz_take' notes.id %}?n={{ result.total }}">Try again</a>
     <a class="btn ghost" href="{% url 'quiz_scores' %}">My Scores</a>
     <a class="btn ghost" href="{% url 'quiz_home' %}">All quizzes</a>
   </p>
 {% else %}
   <form method="post">
     {% csrf_token %}
-    {% for q in questions %}
+    {% for it in items %}
+      <input type="hidden" name="qi" value="{{ it.idx }}">
       <div class="qcard">
-        <div class="qtext">Q{{ forloop.counter }}. {{ q.question }}</div>
-        {% for opt in q.options %}
+        <div class="qtext">Q{{ it.number }}. {{ it.question }}</div>
+        {% for opt in it.options %}
           <label class="opt">
-            <input type="radio" name="q{{ forloop.parentloop.counter0 }}" value="{{ forloop.counter0 }}" required> {{ opt }}
+            <input type="radio" name="a{{ it.idx }}" value="{{ forloop.counter0 }}" required> {{ opt }}
           </label>
         {% endfor %}
       </div>

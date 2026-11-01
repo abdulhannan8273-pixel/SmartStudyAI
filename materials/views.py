@@ -874,7 +874,7 @@ def quiz_take(request, notes_id):
         return redirect("quiz_home")
 
     questions = quiz.questions_json
-    result = None
+    result = request.session.pop(f"quiz_result_{notes.id}", None)
 
     if request.method == "POST":
         review = []
@@ -900,12 +900,13 @@ def quiz_take(request, notes_id):
             })
         total = len(questions)
         QuizAttempt.objects.create(quiz=quiz, score=score, total=total)
-        result = {
+        request.session[f"quiz_result_{notes.id}"] = {
             "score": score,
             "total": total,
             "percent": round(100 * score / total) if total else 0,
             "review": review,
         }
+        return redirect("quiz_take", notes_id=notes.id)
 
     return render(request, "materials/quiz.html", {
         "notes": notes, "questions": questions, "result": result,
